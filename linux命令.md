@@ -85,6 +85,16 @@ source /opt/ros/humble/setup.bash
 ### systemctl
 
 ```
+# 用户级服务 
+systemctl --user daemon-reload 
+
+# 系统级服务（如果放/etc/systemd/system/） 
+sudo systemctl daemon-reload
+```
+
+
+
+```
 # 查看服务状态
 systemctl --user status multi-services
 
@@ -118,3 +128,55 @@ sudo visudo
 ```
 your_username ALL=(ALL) NOPASSWD: ALL
 ```
+
+
+
+### jetson agx 和蓝牙耳机连接一下又立马断开
+
+```
+Jetson AGX Xavier 连接蓝牙耳机秒断，90% 源于 Jetson 默认禁用蓝牙音频插件或电源管理 / 干扰，按以下顺序排查，通常能快速解决。
+
+编辑蓝牙服务配置打开终端执行：
+sudo vim /lib/systemd/system/bluetooth.service.d/nv-bluetooth-service.conf
+找到行：
+ExecStart=/usr/lib/bluetooth/bluetoothd -d --noplugin=audio,a2dp,avrcp
+删除 --noplugin=audio,a2dp,avrcp，
+改为：ExecStart=/usr/lib/bluetooth/bluetoothd -d
+按 :wq 保存退出。
+
+
+# 1. 通知 systemd 重新读取配置文件
+sudo systemctl daemon-reload
+
+# 2. 重启蓝牙服务
+sudo systemctl restart bluetooth
+
+# 3. 检查状态（确保显示 active (running)）
+sudo systemctl status bluetooth
+
+
+安装音频依赖并重启执行以下命令安装蓝牙音频模块并重启设备：
+sudo apt update && sudo apt install -y pulseaudio-module-bluetooth
+sudo reboot
+```
+
+### 方案二
+
+```
+以后遇到蓝牙能连键盘鼠标但连不上耳机/没声音的问题，请按以下最简步骤操作，90% 的情况只需这一步：
+✅ 第一步：安装音频模块（最关键）
+
+sudo apt update
+sudo apt install --reinstall pulseaudio-module-bluetooth bluez bluez-tools
+(加上 --reinstall 确保即使已安装也会重新配置)
+✅ 第二步：重启相关服务
+
+# 重启蓝牙服务
+sudo systemctl restart bluetooth
+
+# 重启音频服务（让 PulseAudio/PipeWire 重新识别蓝牙模块）
+systemctl --user restart pulseaudio
+# 或者如果是 PipeWire (新版 Ubuntu 默认):
+systemctl --user restart pipewire pipewire-pulse
+```
+

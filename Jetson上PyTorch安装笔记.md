@@ -75,3 +75,10 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 ❌ **不要混装** 不同来源的 `torch` / `torchaudio` / `torchvision`  
 ✅ **所有包必须匹配同一 JetPack 版本**（如 JP6 / cu126）
+
+## Thor jetson7.0 cuda13
+
+```
+pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu130
+```
+

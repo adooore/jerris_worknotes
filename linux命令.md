@@ -1,5 +1,7 @@
 # linux命令
 
+### pactl
+
 ```
 #设置系统音量为 95% 的命令
 pactl set-sink-volume @DEFAULT_SINK@ 95%
@@ -25,6 +27,46 @@ pactl get-sink-mute @DEFAULT_SINK@
 Mute: no
 ```
 如果显示 Mute: yes，说明被静音了，即使音量是 100% 也不会出声！
+
+```
+#声卡查询
+pactl list sinks short
+```
+
+```
+#手动测试
+pactl set-default-sink alsa_output.usb-GeneralPlus_USB_Audio_Device-00.analog-stereo
+```
+
+```
+#自动查usb声卡脚本
+#!/bin/bash
+
+# 自动找 USB 声卡（不需要手动写名字）
+TARGET=$(pactl list sinks short | grep -i usb | awk 'NR==1 {print $2}')
+
+# 如果找不到 USB 声卡，等待3秒再试
+while [ -z "$TARGET" ]; do
+    TARGET=$(pactl list sinks short | grep -i usb | awk 'NR==1 {print $2}')
+    sleep 3
+done
+
+# 无限循环确保声音输出在 USB 声卡
+while true; do
+    CURRENT=$(pactl info 2>/dev/null | awk '/Default Sink/ {print $3}')
+
+    if [[ "$CURRENT" != "$TARGET" ]]; then
+        pactl set-default-sink "$TARGET" >/dev/null 2>&1
+
+        # 迁移所有播放中的声音
+        for s in $(pactl list sink-inputs short | awk '{print $1}'); do
+            pactl move-sink-input "$s" "$TARGET" >/dev/null 2>&1
+        done
+    fi
+
+    sleep 2
+done
+```
 
 
 
